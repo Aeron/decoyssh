@@ -1,0 +1,28 @@
+[package]
+name = "rubbissh"
+version = "0.1.0"
+authors = ["Eugene “Aeron” Glybin"]
+description = "An SSH tarpit that slowly and endlessly sends a random banner."
+categories = ["asynchronous", "command-line-utilities", "network-programming"]
+keywords = ["ssh", "tarpit", "netsec", "security", "server"]
+include = ["src/**/*", "LICENSE", "README.md"]
+edition = "2021"
+rust-version = "1.61"
+
+[dependencies]
+async-std = { version = "1.12" }
+clap = { version = "3.1.6", features = ["env", "wrap_help"] }
+fastrand = { version = "1.7" }
+once_cell = { version = "1.12" }
+shadow-rs = { version = "0.11.0", default-features = false }
+
+[build-dependencies]
+shadow-rs = { version = "0.11.0", default-features = false }
+
+[profile.release]
+lto = true
+codegen-units = 1
+
+[[bin]]
+name = "rubbissh"
+path = "src/main.rs"
