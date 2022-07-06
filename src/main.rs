@@ -12,6 +12,10 @@ use async_std::task;
 use crate::args::*;
 use crate::utils::*;
 
+#[cfg(all(target_env = "musl"))]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 async fn process(mut stream: TcpStream, delay: Duration, length: usize, cap: usize) -> Result<()> {
     let addr = stream.peer_addr()?;
 
