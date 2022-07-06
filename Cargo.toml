@@ -27,6 +27,7 @@ mimalloc = { version = "0.1.29" }
 [profile.release]
 lto = true
 codegen-units = 1
+strip = true
 
 [[bin]]
 name = "decoyssh"

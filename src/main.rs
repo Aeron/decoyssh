@@ -26,6 +26,7 @@ async fn process(mut stream: TcpStream, delay: Duration, length: usize, cap: usi
             let now = Instant::now();
 
             loop {
+                // TODO: stream.interval is unstable yet, but it will be one day
                 let msg = generate_random_alphanumeric(length).await;
 
                 if let Some(e) = stream.write_all(msg.as_bytes()).await.err() {
