@@ -12,6 +12,7 @@ rust-version = "1.61"
 
 [dependencies]
 async-std = { version = "1.12" }
+async-signals = { version = "0.4" }
 clap = { version = "3.1.6", features = ["env", "wrap_help"] }
 fastrand = { version = "1.7" }
 once_cell = { version = "1.12" }

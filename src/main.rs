@@ -3,6 +3,7 @@ mod utils;
 
 use std::time::{Duration, Instant};
 
+use async_signals::Signals;
 use async_std::io::{ErrorKind, Result};
 use async_std::net::{Shutdown, TcpListener, TcpStream};
 use async_std::prelude::*;
@@ -48,6 +49,16 @@ async fn process(mut stream: TcpStream, delay: Duration, length: usize, cap: usi
 
 fn main() -> Result<()> {
     task::block_on(async {
+        task::spawn(async {
+            let supported = vec![1, 2, 15]; // NOTE: SIGHUP, SIGINT, SIGTERM
+            let mut signals = Signals::new(supported).unwrap();
+
+            while let Some(_) = signals.next().await {
+                println!("Quitting");
+                std::process::exit(0);
+            }
+        });
+
         let args = parse_app_args();
 
         let cap = usize::from(args.cap);
