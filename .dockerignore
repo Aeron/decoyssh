@@ -1,0 +1,6 @@
+*
+!/src
+!/Cargo.toml
+!/build.rs
+**/.DS_Store
+**/Thumbs.db
