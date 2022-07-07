@@ -7,7 +7,7 @@ categories = ["asynchronous", "command-line-utilities", "network-programming"]
 keywords = ["ssh", "tarpit", "netsec", "security", "server"]
 license = "ISC"
 repository = "https://github.com/Aeron/decoyssh"
-include = ["src/**/*", "LICENSE", "README.md"]
+include = ["src/**/*", "build.rs", "LICENSE", "README.md"]
 edition = "2021"
 rust-version = "1.61"
 
