@@ -1,6 +1,6 @@
 [package]
 name = "decoyssh"
-version = "0.1.0"
+version = "0.3.0"
 authors = ["Eugene “Aeron” Glybin"]
 description = "A compact and portable SSH tarpit server."
 categories = ["asynchronous", "command-line-utilities", "network-programming"]
