@@ -102,6 +102,7 @@ jobs:
   publish-image:
     name: Publish container image
     runs-on: ubuntu-latest
+    if: ${{ false }}
     permissions:
       packages: write
       contents: read
