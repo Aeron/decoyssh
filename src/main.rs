@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use async_signals::Signals;
 use async_std::io::{ErrorKind, Result};
-use async_std::net::{Shutdown, TcpListener, TcpStream};
+use async_std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
 use async_std::prelude::*;
 use async_std::task;
 
@@ -52,11 +52,41 @@ async fn process(mut stream: TcpStream, delay: Duration, length: usize, cap: usi
     Ok(())
 }
 
-fn main() -> Result<()> {
+async fn listen(addr: SocketAddr, delay: Duration, length: usize, cap: usize) {
+    let listener = match TcpListener::bind(addr).await {
+        Ok(listener) => {
+            println!("Listening on {}", addr);
+            listener
+        }
+        Err(ref e) => {
+            println!("Cannot listen on {}: {}", addr, e);
+            return;
+        }
+    };
+
+    let mut incoming = listener.incoming();
+
+    while let Some(stream) = incoming.next().await {
+        let stream = match stream {
+            Ok(stream) => stream,
+            Err(ref e) => {
+                println!("Cannot obtain a TCP stream: {}", e);
+                continue;
+            }
+        };
+        stream.set_nodelay(true).ok(); // we do not really care if it clicks or not
+
+        task::spawn(async move {
+            process(stream, delay, length, cap).await.ok();
+        });
+    }
+}
+
+fn main() {
     task::block_on(async {
         task::spawn(async {
-            let supported = vec![1, 2, 15]; // NOTE: SIGHUP, SIGINT, SIGTERM
-            let mut signals = Signals::new(supported).unwrap();
+            // NOTE: SIGHUP = 1, SIGINT = 2, SIGTERM = 15
+            let mut signals = Signals::new([1, 2, 15]).unwrap();
 
             while let Some(_) = signals.next().await {
                 println!("Quitting");
@@ -64,33 +94,21 @@ fn main() -> Result<()> {
             }
         });
 
-        let args = parse_app_args();
+        let args = Args::parse();
 
         let cap = usize::from(args.cap);
         let delay = Duration::from_millis(args.delay);
         let length = usize::from(args.length);
 
-        let ipv4_listener = TcpListener::bind(args.ipv4_addr()).await?;
-        let ipv6_listener = TcpListener::bind(args.ipv6_addr()).await?;
-
-        println!("Listening on {}", ipv4_listener.local_addr()?);
-        println!("Listening on {}", ipv6_listener.local_addr()?);
-
-        let ipv4_incoming = ipv4_listener.incoming();
-        let ipv6_incoming = ipv6_listener.incoming();
-
-        // TODO: .merge is unstable yet, but it will be one day
-        let mut incoming = ipv4_incoming.chain(ipv6_incoming);
-
-        while let Some(stream) = incoming.next().await {
-            let stream = stream?;
-            stream.set_nodelay(true).ok();
-
-            task::spawn(async move {
-                process(stream, delay, length, cap).await.ok();
-            });
+        // NOTE: I do not know how to make it more efficient.
+        // Chaining/merging circus with optional listeners and incomings, dressed with
+        // boxed dynamic Stream trait objects, does not look like a better solution
+        // than having two separate tasks handling two streams at most.
+        // Maybe there is a better way.
+        for addr in args.addrs() {
+            task::spawn(listen(addr, delay, length, cap));
         }
 
-        Ok(())
+        loop {}
     })
 }

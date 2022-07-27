@@ -7,6 +7,7 @@ use async_std::sync::Mutex;
 use fastrand::alphanumeric;
 use once_cell::sync::Lazy;
 
+const CRLF: &str = "\r\n";
 static CONN_POOL: Lazy<Mutex<HashSet<SocketAddr>>> = Lazy::new(|| Mutex::new(HashSet::new()));
 
 pub async fn add_connection(addr: SocketAddr, cap: usize) -> bool {
@@ -26,15 +27,15 @@ pub async fn remove_connection(addr: SocketAddr) {
 }
 
 pub async fn generate_random_alphanumeric(length: usize) -> String {
-    let mut result: String = String::with_capacity(length);
+    let mut result: String = String::with_capacity(length + CRLF.len());
     let mut stream = repeat_with(alphanumeric).take(length);
 
     while let Some(ch) = stream.next().await {
         result.push(ch);
     }
 
-    // NOTE: newline is enough, but protocol expects CRLF
-    result.push_str("\r\n");
+    // NOTE: newline is enough, but the protocol expects CRLF
+    result.push_str(CRLF);
 
     result
 }
