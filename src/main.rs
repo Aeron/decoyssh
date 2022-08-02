@@ -82,33 +82,32 @@ async fn listen(addr: SocketAddr, delay: Duration, length: usize, cap: usize) {
     }
 }
 
-fn main() {
-    task::block_on(async {
-        task::spawn(async {
-            // NOTE: SIGHUP = 1, SIGINT = 2, SIGTERM = 15
-            let mut signals = Signals::new([1, 2, 15]).unwrap();
+#[async_std::main]
+async fn main() {
+    task::spawn(async {
+        // NOTE: SIGHUP = 1, SIGINT = 2, SIGTERM = 15
+        let mut signals = Signals::new([1, 2, 15]).unwrap();
 
-            while let Some(_) = signals.next().await {
-                println!("Quitting");
-                std::process::exit(0);
-            }
-        });
-
-        let args = Args::parse();
-
-        let cap = usize::from(args.cap);
-        let delay = Duration::from_millis(args.delay);
-        let length = usize::from(args.length);
-
-        // NOTE: I do not know how to make it more efficient.
-        // Chaining/merging circus with optional listeners and incomings, dressed with
-        // boxed dynamic Stream trait objects, does not look like a better solution
-        // than having two separate tasks handling two streams at most.
-        // Maybe there is a better way.
-        for addr in args.addrs() {
-            task::spawn(listen(addr, delay, length, cap));
+        while let Some(_) = signals.next().await {
+            println!("Quitting");
+            std::process::exit(0);
         }
+    });
 
-        loop {}
-    })
+    let args = Args::parse();
+
+    let cap = usize::from(args.cap);
+    let delay = Duration::from_millis(args.delay);
+    let length = usize::from(args.length);
+
+    // NOTE: I do not know how to make it more efficient.
+    // Chaining/merging circus with optional listeners and incomings, dressed with
+    // boxed dynamic Stream trait objects, does not look like a better solution
+    // than having two separate tasks handling two streams at most.
+    // Maybe there is a better way.
+    for addr in args.addrs() {
+        task::spawn(listen(addr, delay, length, cap));
+    }
+
+    loop {}
 }
