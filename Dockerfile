@@ -15,6 +15,13 @@ RUN export TARGET=$(rustup target list | grep -i installed | tr ' ' '\n' | head 
 
 FROM scratch
 
-COPY --from=build-env /usr/src/app/target/*/release/decoyssh .
+COPY --chown=1000:1000 --from=build-env /usr/src/app/target/*/release/decoyssh .
+
+USER 1000
+
+ENV DECOYSSH_PORT 2222
+ENV DECOYSSH_IPV4_ADDR 0.0.0.0:${DECOYSSH_PORT}
+
+EXPOSE ${DECOYSSH_PORT}/tcp
 
 ENTRYPOINT ["/decoyssh"]
