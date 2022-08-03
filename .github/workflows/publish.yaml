@@ -4,6 +4,7 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
 
 jobs:
   publish-binaries:
@@ -88,6 +89,7 @@ jobs:
   publish-cargo:
     name: Publish Cargo package
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     permissions:
       contents: read
     steps:
@@ -106,7 +108,7 @@ jobs:
   publish-image:
     name: Publish container image
     runs-on: ubuntu-latest
-    if: ${{ false }}
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     permissions:
       packages: write
       contents: read
