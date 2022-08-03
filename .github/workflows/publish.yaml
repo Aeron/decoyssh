@@ -40,6 +40,8 @@ jobs:
             os: macos-latest
           - target: x86_64-unknown-freebsd
             os: ubuntu-latest
+          - target: x86_64-unknown-netbsd
+            os: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
