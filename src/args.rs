@@ -54,22 +54,26 @@ pub struct Args {
         long = "ipv4-address",
         env = "DECOYSSH_IPV4_ADDR",
         hide_env(true),
+        multiple_values(true),
+        max_values(8),
         default_missing_value = "0.0.0.0:22",
         display_order(1),
-        help = "IPv4 address to bind on"
+        help = "IPv4 address(es) to bind on [max: 8]"
     )]
-    pub ipv4_addr: Option<Option<SocketAddrV4>>,
+    pub ipv4_addr: Option<Vec<SocketAddrV4>>,
 
     #[clap(
         short = '6',
         long = "ipv6-address",
         env = "DECOYSSH_IPV6_ADDR",
         hide_env(true),
+        multiple_values(true),
+        max_values(8),
         default_missing_value = "[::]:22",
         display_order(2),
-        help = "IPv6 address to bind on"
+        help = "IPv6 address(es) to bind on [max: 8]"
     )]
-    pub ipv6_addr: Option<Option<SocketAddrV6>>,
+    pub ipv6_addr: Option<Vec<SocketAddrV6>>,
 }
 
 impl Args {
@@ -81,28 +85,30 @@ impl Args {
     }
 
     pub fn addrs(&self) -> Vec<SocketAddr> {
-        let mut addrs: Vec<SocketAddr> = Vec::with_capacity(2);
+        let mut addrs: Vec<SocketAddr> = Vec::with_capacity(16);
 
-        if let Some(Some(ipv4_addr)) = self.ipv4_addr {
-            addrs.push(SocketAddr::V4(ipv4_addr));
+        if let Some(addr) = &self.ipv4_addr {
+            addrs.extend(addr.iter().map(|a| SocketAddr::V4(*a)));
         }
 
-        if let Some(Some(ipv6_addr)) = self.ipv6_addr {
-            addrs.push(SocketAddr::V6(ipv6_addr));
+        if let Some(addr) = &self.ipv6_addr {
+            addrs.extend(addr.iter().map(|a| SocketAddr::V6(*a)));
         }
+
+        addrs.dedup();
 
         addrs
     }
 
-    // HACK: The default_value_if does not play very well with Option<Option<...>>:
-    // it works only with a value of a present argument, not with the presence of
-    // one itself. So it seems impossible to have a default value for an argument
-    // solely in the absence of another one. The following is a workaround.
+    // HACK: The default_value_if works only with a value of a present argument, not
+    // with the presence of one itself. So it seems impossible to have a default value
+    // for an argument solely in the absence of another one. The following is a
+    // workaround.
     pub fn parse() -> Args {
         let mut args = <Self as Parser>::parse();
 
         if args.ipv4_addr.is_none() && args.ipv6_addr.is_none() {
-            args.ipv4_addr = Some(Some(Self::default_addr()));
+            args.ipv4_addr = Some([Self::default_addr()].to_vec());
         }
 
         args

@@ -52,14 +52,14 @@ async fn process(mut stream: TcpStream, delay: Duration, length: usize, cap: usi
     Ok(())
 }
 
-async fn listen(addr: SocketAddr, delay: Duration, length: usize, cap: usize) {
-    let listener = match TcpListener::bind(addr).await {
+async fn listen(addrs: Vec<SocketAddr>, delay: Duration, length: usize, cap: usize) {
+    let listener = match TcpListener::bind(addrs.as_slice()).await {
         Ok(listener) => {
-            println!("Listening on {}", addr);
+            println!("Listening on {}", DisplayableVec(addrs));
             listener
         }
         Err(ref e) => {
-            println!("Cannot listen on {}: {}", addr, e);
+            println!("Cannot listen on {}: {}", DisplayableVec(addrs), e);
             return;
         }
     };
@@ -100,14 +100,7 @@ async fn main() {
     let delay = Duration::from_millis(args.delay);
     let length = usize::from(args.length);
 
-    // NOTE: I do not know how to make it more efficient.
-    // Chaining/merging circus with optional listeners and incomings, dressed with
-    // boxed dynamic Stream trait objects, does not look like a better solution
-    // than having two separate tasks handling two streams at most.
-    // Maybe there is a better way.
-    for addr in args.addrs() {
-        task::spawn(listen(addr, delay, length, cap));
-    }
+    task::spawn(listen(args.addrs(), delay, length, cap));
 
     loop {}
 }
