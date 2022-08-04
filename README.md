@@ -96,7 +96,9 @@ docker -d --restart unless-stopped --name decoyssh \
     docker.io/aeron/decoyssh
 ```
 
-The containerized app utilizes `2222` port by default instead of `22`. If you’re
-planning to use IPv4 binding only, you can use the container-specific `DECOYSSH_PORT`
-variable to change the listening/exposed port number. In the case of IPv6 or both
-addresses, use standard [environment variables](#app-options).
+By default, the containerized app uses only an IPv4 address and `2222` port instead of
+`22`.
+
+If you’re planning to use IPv4 binding only, you can use the container-specific
+`DECOYSSH_PORT` variable to change the listening/exposed port number. Otherwise, use
+standard [environment variables](#app-options) explicitly.
