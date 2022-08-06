@@ -52,14 +52,14 @@ async fn process(mut stream: TcpStream, delay: Duration, length: usize, cap: usi
     Ok(())
 }
 
-async fn listen(addrs: Vec<SocketAddr>, delay: Duration, length: usize, cap: usize) {
-    let listener = match TcpListener::bind(addrs.as_slice()).await {
+async fn listen(addr: SocketAddr, delay: Duration, length: usize, cap: usize) {
+    let listener = match TcpListener::bind(addr).await {
         Ok(listener) => {
-            println!("Listening on {}", DisplayableVec(addrs));
+            println!("Listening on {}", addr);
             listener
         }
         Err(ref e) => {
-            println!("Cannot listen on {}: {}", DisplayableVec(addrs), e);
+            println!("Cannot listen on {}: {}", addr, e);
             return;
         }
     };
@@ -100,7 +100,11 @@ async fn main() {
     let delay = Duration::from_millis(args.delay);
     let length = usize::from(args.length);
 
-    task::spawn(listen(args.addrs(), delay, length, cap));
+    // NOTE: Back to the task-per-listener approach. It still looks better and more
+    // preferrable than chaining/merging incomings. At least for now.
+    for addr in args.addrs() {
+        task::spawn(listen(addr, delay, length, cap));
+    }
 
     loop {}
 }
