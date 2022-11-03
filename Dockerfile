@@ -3,6 +3,7 @@ FROM docker.io/library/rust:bullseye AS build-env
 WORKDIR /usr/src/app
 COPY . .
 
+ENV CARGO_NET_GIT_FETCH_WITH_CLI true
 ENV RUSTFLAGS '-C target-feature=+crt-static'
 
 # Static linking requires to specify a target explicitly
@@ -14,6 +15,8 @@ RUN cargo build \
 # An actual image
 
 FROM scratch
+
+LABEL org.opencontainers.image.source https://github.com/aeron/decoyssh
 
 COPY --chown=1000:1000 --from=build-env /usr/src/app/target/*/release/decoyssh .
 
