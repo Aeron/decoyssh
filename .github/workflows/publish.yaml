@@ -60,7 +60,7 @@ jobs:
           profile: minimal
           target: ${{ matrix.target }}
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
       - name: Build binary
