@@ -59,7 +59,7 @@ async fn listen(addr: SocketAddr, delay: Duration, length: usize, cap: usize) {
             listener
         }
         Err(ref e) => {
-            println!("Cannot listen on {}: {}", addr, e);
+            eprintln!("Cannot listen on {}: {}", addr, e);
             return;
         }
     };
@@ -70,7 +70,7 @@ async fn listen(addr: SocketAddr, delay: Duration, length: usize, cap: usize) {
         let stream = match stream {
             Ok(stream) => stream,
             Err(ref e) => {
-                println!("Cannot obtain a TCP stream: {}", e);
+                eprintln!("Cannot obtain a TCP stream: {}", e);
                 continue;
             }
         };
