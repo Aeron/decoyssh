@@ -15,8 +15,8 @@ shadow!(build);
 pub struct Args {
     #[clap(
         short,
-        long="capacity",
-        value_parser=value_parser!(u16).range(1..),
+        long = "capacity",
+        value_parser = value_parser!(u16).range(1..),
         env = "DECOYSSH_CAP",
         hide_env(true),
         default_value = "4096",
@@ -28,7 +28,7 @@ pub struct Args {
     #[clap(
         short,
         long,
-        value_parser=value_parser!(u64).range(1..),
+        value_parser = value_parser!(u64).range(1..),
         env = "DECOYSSH_DELAY",
         hide_env(true),
         default_value = "10000",
@@ -40,7 +40,7 @@ pub struct Args {
     #[clap(
         short,
         long,
-        value_parser=value_parser!(u8).range(3..=255),
+        value_parser = value_parser!(u8).range(3..=255),
         env = "DECOYSSH_LENGTH",
         hide_env(true),
         default_value = "32",
@@ -54,8 +54,7 @@ pub struct Args {
         long = "ipv4-address",
         env = "DECOYSSH_IPV4_ADDR",
         hide_env(true),
-        multiple_values(true),
-        max_values(8),
+        num_args(0..=8),
         default_missing_value = "0.0.0.0:22",
         display_order(1),
         help = "IPv4 address(es) to bind on [max: 8]"
@@ -67,8 +66,7 @@ pub struct Args {
         long = "ipv6-address",
         env = "DECOYSSH_IPV6_ADDR",
         hide_env(true),
-        multiple_values(true),
-        max_values(8),
+        num_args(0..=8),
         default_missing_value = "[::]:22",
         display_order(2),
         help = "IPv6 address(es) to bind on [max: 8]"
@@ -104,6 +102,7 @@ impl Args {
     // with the presence of one itself. So it seems impossible to have a default value
     // for an argument solely in the absence of another one. The following is a
     // workaround.
+    // TODO: check if it is still the case in Clap v4
     pub fn parse() -> Args {
         let mut args = <Self as Parser>::parse();
 
