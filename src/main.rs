@@ -36,5 +36,8 @@ async fn main() {
         task::spawn(listen(addr));
     }
 
-    loop {}
+    loop {
+        // HACK: drastically lowers the CPU usage of an infinite loop
+        task::sleep(Duration::from_secs(60)).await;
+    }
 }
