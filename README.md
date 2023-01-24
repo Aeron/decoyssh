@@ -53,30 +53,16 @@ docker pull ghcr.io/aeron/decoyssh
 Running the app with `-h` or `--help` option will give you the following:
 
 ```text
-USAGE:
-    decoyssh [OPTIONS]
+Usage: decoyssh [OPTIONS]
 
-OPTIONS:
-    -4, --ipv4-address <IPV4_ADDR>...
-            IPv4 address(es) to bind on [max: 8]
-
-    -6, --ipv6-address <IPV6_ADDR>...
-            IPv6 address(es) to bind on [max: 8]
-
-    -d, --delay <DELAY>
-            Message delay (in milliseconds) [default: 10000]
-
-    -l, --length <LENGTH>
-            Maximum line length [default: 32]
-
-    -c, --capacity <CAP>
-            Maximum number of connections [default: 4096]
-
-    -h, --help
-            Print help information
-
-    -V, --version
-            Print version information
+Options:
+  -4, --ipv4-address [<IPV4_ADDR>...]  IPv4 address(es) to bind on [max: 8]
+  -6, --ipv6-address [<IPV6_ADDR>...]  IPv6 address(es) to bind on [max: 8]
+  -d, --delay <DELAY>                  Message delay (in milliseconds) [default: 10000]
+  -l, --length <LENGTH>                Maximum line length [default: 32]
+  -c, --capacity <CAP>                 Maximum number of connections [default: 4096]
+  -h, --help                           Print help information
+  -V, --version                        Print version information
 ```
 
 If no addresses are given, it’ll run on `0.0.0.0:22` only. To use both IPv4 and
