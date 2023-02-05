@@ -17,7 +17,7 @@ use crate::tasks::listen;
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-static ARGS: Lazy<Args> = Lazy::new(|| Args::parse());
+static ARGS: Lazy<Args> = Lazy::new(Args::parse);
 static POOL: Lazy<ConnectionPool> = Lazy::new(|| ConnectionPool::with_capacity(ARGS.cap.into()));
 
 #[async_std::main]
@@ -26,7 +26,7 @@ async fn main() {
         // NOTE: SIGHUP = 1, SIGINT = 2, SIGTERM = 15
         let mut signals = Signals::new([1, 2, 15]).unwrap();
 
-        while let Some(_) = signals.next().await {
+        while (signals.next().await).is_some() {
             println!("Quitting");
             std::process::exit(0);
         }
