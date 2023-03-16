@@ -32,9 +32,8 @@ Cargo package can be installed as usually:
 cargo install decoyssh
 ```
 
-The container image is available as [`docker.io/aeron/decoyssh`][docker] from Docker
-Hub and [`ghcr.io/Aeron/decoyssh`][github] from GitHub Container Registry. You can use
-them both interchangeably.
+The container image is available as [`docker.io/aeron/decoyssh`][docker] and
+[`ghcr.io/Aeron/decoyssh`][github]. You can use them both interchangeably.
 
 ```sh
 docker pull docker.io/aeron/decoyssh
@@ -77,6 +76,7 @@ Running a container is pretty straigthforward:
 
 ```sh
 docker -d --restart unless-stopped --name decoyssh \
+    --user=65534 \
     -p 22/2222:tcp \
     -e DECOYSSH_PORT=2222 \
     docker.io/aeron/decoyssh
@@ -88,3 +88,6 @@ By default, the containerized app uses only an IPv4 address and `2222` port inst
 If you’re planning to use IPv4 binding only, you can use the container-specific
 `DECOYSSH_PORT` variable to change the listening/exposed port number. Otherwise, use
 standard [environment variables](#app-options) explicitly.
+
+Don’t forget about the unprivileged user trick. The container itself won’t enforce
+any specific UID.
