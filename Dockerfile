@@ -19,9 +19,7 @@ FROM scratch
 LABEL org.opencontainers.image.source https://github.com/aeron/decoyssh
 LABEL org.opencontainers.image.licenses ISC
 
-COPY --chown=1000:1000 --from=build-env /usr/src/app/target/*/release/decoyssh .
-
-USER 1000
+COPY --from=build-env /usr/src/app/target/*/release/decoyssh .
 
 ENV DECOYSSH_PORT 2222
 ENV DECOYSSH_IPV4_ADDR 0.0.0.0:${DECOYSSH_PORT}
