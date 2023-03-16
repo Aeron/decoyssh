@@ -1,17 +1,9 @@
 use async_std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
-use clap::{value_parser, Parser};
-use shadow_rs::shadow;
-
-shadow!(build);
+use clap::{crate_description, crate_name, crate_version, value_parser, Parser};
 
 #[derive(Parser, Debug)]
-#[clap(name = build::PROJECT_NAME)]
-#[clap(
-    version = build::PKG_VERSION,
-    long_version = build::CLAP_LONG_VERSION,
-    about = build::PKG_DESCRIPTION,
-    long_about = None,
-)]
+#[clap(name = crate_name!())]
+#[clap(version = crate_version!(), about = crate_description!())]
 pub struct Args {
     #[clap(
         short,
