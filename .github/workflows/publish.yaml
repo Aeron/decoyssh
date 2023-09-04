@@ -45,7 +45,7 @@ jobs:
             os: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set artifact name
@@ -94,7 +94,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Setup Rust
@@ -116,7 +116,7 @@ jobs:
       GITHUB_REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/decoyssh
       DOCKER_REGISTRY_IMAGE: docker.io/aeron/decoyssh
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: recase
