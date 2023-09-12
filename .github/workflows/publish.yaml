@@ -124,7 +124,7 @@ jobs:
         with:
           string: ${{ env.GITHUB_REGISTRY_IMAGE }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         # HACK: https://github.com/docker/setup-qemu-action/issues/60
         with:
           image: tonistiigi/binfmt:qemu-v6.2.0
