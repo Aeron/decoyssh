@@ -13,7 +13,7 @@ use crate::args::Args;
 use crate::pool::ConnectionPool;
 use crate::tasks::listen;
 
-#[cfg(all(target_env = "musl"))]
+#[cfg(target_env = "musl")]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
