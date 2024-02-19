@@ -26,8 +26,9 @@ jobs:
             os: ubuntu-latest
           - target: x86_64-unknown-freebsd
             os: ubuntu-latest
-          - target: x86_64-unknown-netbsd
-            os: ubuntu-latest
+          # NOTE: it has known issues, and always fails
+          # - target: x86_64-unknown-netbsd
+          #   os: ubuntu-latest
           - target: x86_64-apple-darwin
             os: macos-latest
           - target: armv7-unknown-linux-gnueabihf
@@ -42,8 +43,9 @@ jobs:
             os: macos-latest
           - target: riscv64gc-unknown-linux-gnu
             os: ubuntu-latest
-          - target: riscv64gc-unknown-linux-musl
-            os: ubuntu-latest
+          # NOTE: MUSL is not yet widely available for cross-compilation
+          # - target: riscv64gc-unknown-linux-musl
+          #   os: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Build and Upload
