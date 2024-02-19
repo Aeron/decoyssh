@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use async_signals::Signals;
 use async_std::io::ErrorKind;
 use async_std::net::TcpListener;
-use async_std::net::{Shutdown, TcpStream};
+use async_std::net::{Shutdown, SocketAddr, TcpStream};
 use async_std::prelude::*;
 use async_std::stream::repeat_with;
 use async_std::task;
@@ -17,57 +17,50 @@ use once_cell::sync::Lazy;
 use crate::args::Args;
 use crate::pool::ConnectionPool;
 
+const CRLF: &str = "\r\n";
+
 #[cfg(target_env = "musl")]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 static ARGS: Lazy<Args> = Lazy::new(Args::parse);
-static POOL: Lazy<ConnectionPool> = Lazy::new(|| ConnectionPool::with_capacity(ARGS.cap.into()));
+static POOL: Lazy<ConnectionPool> = Lazy::new(|| ConnectionPool::with_capacity(ARGS.cap as usize));
 
-const CRLF: &str = "\r\n";
-
-async fn process(mut stream: TcpStream) {
-    let addr = match stream.peer_addr() {
-        Ok(addr) => addr,
-        Err(_) => return,
-    };
-
-    let length = usize::from(ARGS.length);
+async fn process(mut stream: TcpStream) -> Result<(SocketAddr, Duration), std::io::Error> {
+    let addr = stream.peer_addr()?;
+    let length = ARGS.length as usize;
     let cap = length + CRLF.len();
+    let now = Instant::now();
 
-    match POOL.insert(addr).await {
-        true => {
-            println!("Got connection from {addr}");
+    if POOL.insert(addr).await {
+        let mut buf: String = String::with_capacity(cap);
+        let mut rep = repeat_with(alphanumeric);
 
-            let mut buf: String = String::with_capacity(cap);
-            let now = Instant::now();
-
-            loop {
-                repeat_with(alphanumeric)
-                    .take(length)
-                    .for_each(|ch| buf.push(ch))
-                    .await;
-
-                buf.push_str(CRLF);
-
-                if let Some(ref e) = stream.write_all(buf.as_bytes()).await.err() {
-                    if e.kind() != ErrorKind::WouldBlock {
-                        println!("{addr} has gone yet wasted ~{:.2?}", now.elapsed());
-                        break;
-                    }
-                }
-
-                buf.clear();
-
-                task::sleep(Duration::from_millis(ARGS.delay)).await;
+        while let Some(ch) = rep.next().await {
+            if buf.len() < length {
+                buf.push(ch);
+                continue;
             }
+
+            buf.push_str(CRLF);
+
+            if let Some(err) = stream.write_all(buf.as_bytes()).await.err() {
+                if err.kind() != ErrorKind::WouldBlock {
+                    break;
+                }
+            };
+
+            buf.clear();
+
+            task::sleep(Duration::from_millis(ARGS.delay)).await;
         }
-        false => {
-            stream.shutdown(Shutdown::Both).ok();
-        }
+    } else {
+        stream.shutdown(Shutdown::Both)?;
     }
 
     POOL.remove(&addr).await;
+
+    Ok((addr, now.elapsed()))
 }
 
 #[async_std::main]
@@ -76,7 +69,7 @@ async fn main() {
         // NOTE: SIGHUP = 1, SIGINT = 2, SIGTERM = 15
         let mut signals = Signals::new([1, 2, 15]).unwrap();
 
-        while (signals.next().await).is_some() {
+        if signals.next().await.is_some() {
             println!("Quitting");
             std::process::exit(0);
         }
@@ -91,8 +84,8 @@ async fn main() {
                 println!("Listening on {addr}");
                 listeners.push(listener);
             }
-            Err(ref e) => {
-                eprintln!("Cannot listen on {addr}: {e}");
+            Err(ref err) => {
+                eprintln!("Cannot listen on {addr}: {err}");
                 std::process::exit(1);
             }
         };
@@ -103,13 +96,18 @@ async fn main() {
     while let Some(stream) = incoming.next().await {
         let stream = match stream {
             Ok(stream) => stream,
-            Err(ref e) => {
-                eprintln!("Cannot obtain a TCP stream: {e}");
+            Err(ref err) => {
+                eprintln!("Cannot obtain a TCP stream: {err}");
                 continue;
             }
         };
         stream.set_nodelay(true).ok(); // we do not really care if it clicks or not
 
-        task::spawn(process(stream));
+        task::spawn(async {
+            // NOTE: all errors are meaningless for us here
+            if let Ok((addr, dur)) = process(stream).await {
+                println!("{addr} has gone yet wasted ~{dur:.2?}")
+            };
+        });
     }
 }
