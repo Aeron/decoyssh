@@ -11,7 +11,7 @@ use async_std::prelude::*;
 use async_std::stream::repeat_with;
 use async_std::task;
 use fastrand::alphanumeric;
-use futures::stream::select_all;
+use futures_util::stream::select_all;
 
 use crate::args::Args;
 use crate::pool::{ConnectionPool, ConnectionPoolProxy};
