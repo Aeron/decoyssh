@@ -15,7 +15,7 @@ use futures::stream::select_all;
 use once_cell::sync::Lazy;
 
 use crate::args::Args;
-use crate::pool::ConnectionPool;
+use crate::pool::{ConnectionPool, ConnectionPoolProxy};
 
 const CRLF: &str = "\r\n";
 
@@ -24,15 +24,17 @@ const CRLF: &str = "\r\n";
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 static ARGS: Lazy<Args> = Lazy::new(Args::parse);
-static POOL: Lazy<ConnectionPool> = Lazy::new(|| ConnectionPool::with_capacity(ARGS.cap as usize));
 
-async fn process(mut stream: TcpStream) -> Result<(SocketAddr, Duration), std::io::Error> {
+async fn process(
+    mut stream: TcpStream,
+    pool: ConnectionPoolProxy,
+) -> Result<(SocketAddr, Duration), std::io::Error> {
     let addr = stream.peer_addr()?;
     let length = ARGS.length as usize;
     let cap = length + CRLF.len();
     let now = Instant::now();
 
-    if POOL.insert(addr).await {
+    if pool.insert(addr).await.unwrap_or_default() {
         let mut buf: String = String::with_capacity(cap);
         let mut rep = repeat_with(alphanumeric);
 
@@ -58,7 +60,7 @@ async fn process(mut stream: TcpStream) -> Result<(SocketAddr, Duration), std::i
         stream.shutdown(Shutdown::Both)?;
     }
 
-    POOL.remove(&addr).await;
+    pool.remove(addr).await;
 
     Ok((addr, now.elapsed()))
 }
@@ -73,6 +75,13 @@ async fn main() {
             println!("Quitting");
             std::process::exit(0);
         }
+    });
+
+    let mut pool = ConnectionPool::with_capacity(ARGS.cap as usize);
+    let proxy = pool.proxy();
+
+    task::spawn(async move {
+        pool.manager().await;
     });
 
     let addrs = ARGS.addrs();
@@ -103,9 +112,11 @@ async fn main() {
         };
         stream.set_nodelay(true).ok(); // we do not really care if it clicks or not
 
+        let pool = proxy.clone();
+
         task::spawn(async {
             // NOTE: all errors are meaningless for us here
-            if let Ok((addr, dur)) = process(stream).await {
+            if let Ok((addr, dur)) = process(stream, pool).await {
                 println!("{addr} has gone yet wasted ~{dur:.2?}")
             };
         });
