@@ -3,6 +3,7 @@ mod pool;
 
 use std::time::{Duration, Instant};
 
+use anyhow::{bail, Result};
 use async_signals::Signals;
 use async_std::io::ErrorKind;
 use async_std::net::TcpListener;
@@ -27,7 +28,7 @@ async fn process(
     pool: ConnectionPoolProxy,
     length: usize,
     delay: Duration,
-) -> Result<(SocketAddr, Duration), std::io::Error> {
+) -> Result<(SocketAddr, Duration)> {
     let addr = stream.peer_addr()?;
     let cap = length + CRLF.len();
     let now = Instant::now();
@@ -56,6 +57,7 @@ async fn process(
         }
     } else {
         stream.shutdown(Shutdown::Both)?;
+        bail!("pool is not ready");
     }
 
     pool.remove(addr).await;
