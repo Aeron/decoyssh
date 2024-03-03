@@ -333,7 +333,6 @@ dependencies = [
  "fastrand 1.9.0",
  "futures",
  "mimalloc",
- "once_cell",
 ]
 
 [[package]]

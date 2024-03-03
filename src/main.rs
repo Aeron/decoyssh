@@ -12,7 +12,6 @@ use async_std::stream::repeat_with;
 use async_std::task;
 use fastrand::alphanumeric;
 use futures::stream::select_all;
-use once_cell::sync::Lazy;
 
 use crate::args::Args;
 use crate::pool::{ConnectionPool, ConnectionPoolProxy};
@@ -23,14 +22,13 @@ const CRLF: &str = "\r\n";
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-static ARGS: Lazy<Args> = Lazy::new(Args::parse);
-
 async fn process(
     mut stream: TcpStream,
     pool: ConnectionPoolProxy,
+    length: usize,
+    delay: Duration,
 ) -> Result<(SocketAddr, Duration), std::io::Error> {
     let addr = stream.peer_addr()?;
-    let length = ARGS.length as usize;
     let cap = length + CRLF.len();
     let now = Instant::now();
 
@@ -54,7 +52,7 @@ async fn process(
 
             buf.clear();
 
-            task::sleep(Duration::from_millis(ARGS.delay)).await;
+            task::sleep(delay).await;
         }
     } else {
         stream.shutdown(Shutdown::Both)?;
@@ -77,14 +75,18 @@ async fn main() {
         }
     });
 
-    let mut pool = ConnectionPool::with_capacity(ARGS.cap as usize);
+    let args = Args::parse();
+    let length = args.length as usize;
+    let delay = Duration::from_millis(args.delay);
+
+    let mut pool = ConnectionPool::with_capacity(args.cap as usize);
     let proxy = pool.proxy();
 
     task::spawn(async move {
         pool.manager().await;
     });
 
-    let addrs = ARGS.addrs();
+    let addrs = args.addrs();
     let mut listeners = Vec::with_capacity(addrs.capacity());
 
     for addr in addrs {
@@ -114,9 +116,9 @@ async fn main() {
 
         let pool = proxy.clone();
 
-        task::spawn(async {
+        task::spawn(async move {
             // NOTE: all errors are meaningless for us here
-            if let Ok((addr, dur)) = process(stream, pool).await {
+            if let Ok((addr, dur)) = process(stream, pool, length, delay).await {
                 println!("{addr} has gone yet wasted ~{dur:.2?}")
             };
         });
