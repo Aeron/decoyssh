@@ -5,9 +5,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{bail, Result};
 use async_signals::Signals;
-use async_std::io::ErrorKind;
-use async_std::net::TcpListener;
-use async_std::net::{Shutdown, SocketAddr, TcpStream};
+use async_std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
 use async_std::prelude::*;
 use async_std::stream::repeat_with;
 use async_std::task;
@@ -46,7 +44,7 @@ async fn process(
             buf.push_str(CRLF);
 
             if let Some(err) = stream.write_all(buf.as_bytes()).await.err() {
-                if err.kind() != ErrorKind::WouldBlock {
+                if err.kind() != std::io::ErrorKind::WouldBlock {
                     break;
                 }
             };
@@ -85,7 +83,7 @@ async fn main() {
     let proxy = pool.proxy();
 
     task::spawn(async move {
-        pool.manager().await;
+        pool.listen().await;
     });
 
     let addrs = args.addrs();
