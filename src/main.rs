@@ -87,20 +87,19 @@ async fn main() {
     });
 
     let addrs = args.addrs();
-    let mut listeners = Vec::with_capacity(addrs.capacity());
-
-    for addr in addrs {
-        match TcpListener::bind(addr).await {
+    let listeners: Vec<TcpListener> = addrs
+        .iter()
+        .map(|addr| match std::net::TcpListener::bind(addr) {
             Ok(listener) => {
                 println!("Listening on {addr}");
-                listeners.push(listener);
+                TcpListener::from(listener)
             }
             Err(ref err) => {
                 eprintln!("Cannot listen on {addr}: {err}");
                 std::process::exit(1);
             }
-        };
-    }
+        })
+        .collect();
 
     let mut incoming = select_all(listeners.iter().map(|l| l.incoming()));
 
