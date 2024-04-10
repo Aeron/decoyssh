@@ -31,7 +31,7 @@ async fn process(
     let cap = length + CRLF.len();
     let now = Instant::now();
 
-    if pool.insert(addr).await.unwrap_or_default() {
+    if pool.insert(addr).await {
         let mut buf: String = String::with_capacity(cap);
         let mut rep = repeat_with(alphanumeric);
 
