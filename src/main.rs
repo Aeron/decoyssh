@@ -63,8 +63,7 @@ async fn process(
     Ok((addr, now.elapsed()))
 }
 
-#[async_std::main]
-async fn main() {
+fn main() {
     task::spawn(async {
         // NOTE: SIGHUP = 1, SIGINT = 2, SIGTERM = 15
         let mut signals = Signals::new([1, 2, 15]).unwrap();
@@ -103,23 +102,25 @@ async fn main() {
 
     let mut incoming = select_all(listeners.iter().map(|l| l.incoming()));
 
-    while let Some(stream) = incoming.next().await {
-        let stream = match stream {
-            Ok(stream) => stream,
-            Err(ref err) => {
-                eprintln!("Cannot obtain a TCP stream: {err}");
-                continue;
-            }
-        };
-        stream.set_nodelay(true).ok(); // we do not really care if it clicks or not
-
-        let pool = proxy.clone();
-
-        task::spawn(async move {
-            // NOTE: all errors are meaningless for us here
-            if let Ok((addr, dur)) = process(stream, pool, length, delay).await {
-                println!("{addr} has gone yet wasted ~{dur:.2?}")
+    task::block_on(async {
+        while let Some(stream) = incoming.next().await {
+            let stream = match stream {
+                Ok(stream) => stream,
+                Err(ref err) => {
+                    eprintln!("Cannot obtain a TCP stream: {err}");
+                    continue;
+                }
             };
-        });
-    }
+            stream.set_nodelay(true).ok(); // we do not really care if it clicks or not
+
+            let pool = proxy.clone();
+
+            task::spawn(async move {
+                // NOTE: all errors are meaningless for us here
+                if let Ok((addr, dur)) = process(stream, pool, length, delay).await {
+                    println!("{addr} has gone yet wasted ~{dur:.2?}")
+                };
+            });
+        }
+    });
 }
