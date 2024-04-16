@@ -78,13 +78,6 @@ fn main() {
     let length = args.length as usize;
     let delay = Duration::from_millis(args.delay);
 
-    let mut pool = ConnectionPool::with_capacity(args.cap as usize);
-    let proxy = pool.proxy();
-
-    task::spawn(async move {
-        pool.listen().await;
-    });
-
     let listeners: Vec<TcpListener> = args
         .addrs
         .iter()
@@ -101,6 +94,13 @@ fn main() {
         .collect();
 
     let mut incoming = select_all(listeners.iter().map(|l| l.incoming()));
+
+    let mut pool = ConnectionPool::with_capacity(args.cap as usize);
+    let proxy = pool.proxy();
+
+    task::spawn(async move {
+        pool.listen().await;
+    });
 
     task::block_on(async {
         while let Some(stream) = incoming.next().await {
