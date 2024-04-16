@@ -55,20 +55,22 @@ Running the app with `-h` or `--help` option will give you the following:
 Usage: decoyssh [OPTIONS]
 
 Options:
-  -4, --ipv4-address [<IPV4_ADDR>...]  IPv4 address(es) to bind on [max: 8]
-  -6, --ipv6-address [<IPV6_ADDR>...]  IPv6 address(es) to bind on [max: 8]
-  -d, --delay <DELAY>                  Message delay (in milliseconds) [default: 10000]
-  -l, --length <LENGTH>                Maximum line length [default: 32]
-  -c, --capacity <CAP>                 Maximum number of connections [default: 4096]
-  -h, --help                           Print help information
-  -V, --version                        Print version information
+  -a, --address [<ADDRS>...]  IP address(es) to bind on [default: 0.0.0.0:22]
+  -d, --delay <DELAY>         Message delay (in milliseconds) [default: 10000]
+  -l, --length <LENGTH>       Maximum line length [default: 32]
+  -c, --capacity <CAP>        Maximum number of connections [default: 4096]
+  -h, --help                  Print help
+  -V, --version               Print version
 ```
 
-If no addresses are given, it’ll run on `0.0.0.0:22` only. To use both IPv4 and
-IPv6 addresses, both options—with or without values—must be given explicitly.
-
 All options are available as environment variables, with the same name as value names
-but with the `DECOYSSH_` prefix. For example, `DECOYSSH_IPV4_ADDR`.
+but with the `DECOYSSH_` prefix. For example, `DECOYSSH_ADDRS`, `DECOYSSH_DELAY`, etc.
+
+> [!NOTE]
+> There are backward compatibility options and environment variables for older IPv4
+> and IPv6 addresses available. Those have the same aliases as before: `-4` and `-6`,
+> `--ipv4-address` and `--ipv6-address`, `DECOYSSH_IPV4_ADDR` and `DECOYSSH_IPV6_ADDR`
+> respectively.
 
 ### Container Running
 
