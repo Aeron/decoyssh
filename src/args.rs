@@ -1,9 +1,15 @@
-use async_std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
-use clap::{crate_description, crate_name, crate_version, value_parser, Parser};
+use std::env;
+
+use async_std::net::SocketAddr;
+use clap::error::{ContextKind, ContextValue, DefaultFormatter, Error, ErrorKind};
+use clap::{crate_description, crate_name, crate_version, value_parser, CommandFactory, Parser};
 
 #[derive(Parser, Debug)]
-#[clap(name = crate_name!())]
-#[clap(version = crate_version!(), about = crate_description!())]
+#[clap(
+    name = crate_name!(),
+    version = crate_version!(),
+    about = crate_description!(),
+)]
 pub struct Args {
     #[clap(
         short,
@@ -32,7 +38,7 @@ pub struct Args {
     #[clap(
         short,
         long,
-        value_parser = value_parser!(u8).range(3..=255),
+        value_parser = value_parser!(u8).range(3..),
         env = "DECOYSSH_LENGTH",
         hide_env(true),
         default_value = "32",
@@ -42,66 +48,113 @@ pub struct Args {
     pub length: u8,
 
     #[clap(
-        short = '4',
-        long = "ipv4-address",
-        env = "DECOYSSH_IPV4_ADDR",
+        short,
+        long = "address",
+        env = "DECOYSSH_ADDRS",
         hide_env(true),
-        num_args(0..=8),
-        default_missing_value = "0.0.0.0:22",
+        num_args(0..),
+        default_value = "0.0.0.0:22",
         display_order(1),
-        help = "IPv4 address(es) to bind on [max: 8]"
+        help = "IP address(es) to bind on",
+        // NOTE: backward compatibility
+        short_aliases = ['4', '6'],
+        aliases = ["ipv4-address", "ipv6-address"],
     )]
-    pub ipv4_addr: Option<Vec<SocketAddrV4>>,
-
-    #[clap(
-        short = '6',
-        long = "ipv6-address",
-        env = "DECOYSSH_IPV6_ADDR",
-        hide_env(true),
-        num_args(0..=8),
-        default_missing_value = "[::]:22",
-        display_order(2),
-        help = "IPv6 address(es) to bind on [max: 8]"
-    )]
-    pub ipv6_addr: Option<Vec<SocketAddrV6>>,
+    pub addrs: Vec<SocketAddr>,
 }
 
 impl Args {
-    const DEFAULT_IP: Ipv4Addr = Ipv4Addr::new(0, 0, 0, 0);
-    const DEFAULT_PORT: u16 = 22;
+    const ADDR_ENV_ALIASES: [&'static str; 2] = ["DECOYSSH_IPV4_ADDR", "DECOYSSH_IPV6_ADDR"];
 
-    fn default_addr() -> SocketAddrV4 {
-        SocketAddrV4::new(Self::DEFAULT_IP, Self::DEFAULT_PORT)
+    fn exit_with_env_value_validation_error(key: &str, value: &str) -> ! {
+        let cmd = <Self as CommandFactory>::command();
+        let mut error: Error<DefaultFormatter> =
+            Error::new(ErrorKind::ValueValidation).with_cmd(&cmd);
+
+        error.insert(
+            ContextKind::InvalidArg,
+            ContextValue::String(key.to_owned()),
+        );
+        error.insert(
+            ContextKind::InvalidValue,
+            ContextValue::String(value.to_owned()),
+        );
+
+        error.exit()
     }
 
-    pub fn addrs(&self) -> Vec<SocketAddr> {
-        let mut addrs: Vec<SocketAddr> = Vec::with_capacity(16);
+    fn enrich_with_compatible_env_addrs(addrs: &mut Vec<SocketAddr>) {
+        for key in Self::ADDR_ENV_ALIASES {
+            let Ok(value) = env::var(key) else { continue };
 
-        if let Some(addr) = &self.ipv4_addr {
-            addrs.extend(addr.iter().map(|a| SocketAddr::V4(*a)));
+            for value in value.split(',').map(|value| value.trim()) {
+                match value.parse() {
+                    Ok(addr) => addrs.push(addr),
+                    Err(_) => Self::exit_with_env_value_validation_error(key, value),
+                }
+            }
         }
 
-        if let Some(addr) = &self.ipv6_addr {
-            addrs.extend(addr.iter().map(|a| SocketAddr::V6(*a)));
+        if addrs.len() > 1 {
+            // NOTE: assuming the default value is now excessive
+            addrs.remove(0);
+            addrs.dedup();
         }
-
-        addrs.dedup();
-
-        addrs
     }
 
-    // HACK: The default_value_if works only with a value of a present argument, not
-    // with the presence of one itself. So it seems impossible to have a default value
-    // for an argument solely in the absence of another one. The following is a
-    // workaround.
-    // TODO: check if it is still the case in Clap v4
     pub fn parse() -> Args {
         let mut args = <Self as Parser>::parse();
+        args.addrs.dedup();
 
-        if args.ipv4_addr.is_none() && args.ipv6_addr.is_none() {
-            args.ipv4_addr = Some([Self::default_addr()].to_vec());
+        // HACK: keeping backward compatibility with older IPv4 and IPv6 keys
+        // since Clap has no environment variable name aliases at the moment
+        // (see https://github.com/clap-rs/clap/issues/5447)
+        if args.addrs.len() == 1 && args.addrs[0].to_string() == "0.0.0.0:22" {
+            Self::enrich_with_compatible_env_addrs(&mut args.addrs);
         }
 
         args
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn with_setup<S, D, T>(setup: S, teardown: D, test: T)
+    where
+        T: FnOnce() + std::panic::UnwindSafe,
+        S: FnOnce(),
+        D: FnOnce(),
+    {
+        setup();
+        let result = std::panic::catch_unwind(test);
+        teardown();
+        assert!(result.is_ok())
+    }
+
+    #[test]
+    fn test_enrich_with_compatible_env_addrs() {
+        with_setup(
+            || {
+                env::set_var("DECOYSSH_IPV4_ADDR", "127.0.0.1:22,127.0.0.2:22");
+                env::set_var("DECOYSSH_IPV6_ADDR", "[::ffff:7f00:3]:22");
+            },
+            || {
+                for key in Args::ADDR_ENV_ALIASES {
+                    env::remove_var(key);
+                }
+            },
+            || {
+                let mut addrs: Vec<SocketAddr> = vec!["0.0.0.0:22".parse().unwrap()];
+
+                Args::enrich_with_compatible_env_addrs(&mut addrs);
+
+                assert!(addrs.len() == 3, "{addrs:?}");
+                assert!(addrs[0] == "127.0.0.1:22".parse().unwrap());
+                assert!(addrs[1] == "127.0.0.2:22".parse().unwrap());
+                assert!(addrs[2] == "[::ffff:7f00:3]:22".parse().unwrap());
+            },
+        )
     }
 }

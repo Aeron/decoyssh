@@ -86,8 +86,8 @@ async fn main() {
         pool.listen().await;
     });
 
-    let addrs = args.addrs();
-    let listeners: Vec<TcpListener> = addrs
+    let listeners: Vec<TcpListener> = args
+        .addrs
         .iter()
         .map(|addr| match std::net::TcpListener::bind(addr) {
             Ok(listener) => {
