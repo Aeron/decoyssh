@@ -1,8 +1,30 @@
 use std::env;
+use std::time::Duration;
 
 use async_std::net::SocketAddr;
+use clap::builder::TypedValueParser;
 use clap::error::{ContextKind, ContextValue, DefaultFormatter, Error, ErrorKind};
 use clap::{crate_description, crate_name, crate_version, value_parser, CommandFactory, Parser};
+
+/// Represents a milliseconds duration value parser.
+#[derive(Clone)]
+struct DurationMillisValueParser;
+
+impl TypedValueParser for DurationMillisValueParser {
+    type Value = Duration;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &std::ffi::OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let inner = clap::value_parser!(u64).range(1..);
+        let value = inner.parse_ref(cmd, arg, value)?;
+
+        Ok(Duration::from_millis(value))
+    }
+}
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -26,14 +48,14 @@ pub struct Args {
     #[clap(
         short,
         long,
-        value_parser = value_parser!(u64).range(1..),
+        value_parser = DurationMillisValueParser,
         env = "DECOYSSH_DELAY",
         hide_env(true),
         default_value = "10000",
         display_order(3),
         help = "Message delay (in milliseconds)"
     )]
-    pub delay: u64,
+    pub delay: Duration,
 
     #[clap(
         short,
@@ -156,5 +178,20 @@ mod tests {
                 assert!(addrs[2] == "[::ffff:7f00:3]:22".parse().unwrap());
             },
         )
+    }
+
+    #[test]
+    fn test_custom_parsing_duration() {
+        fn parse(_: &str) -> Result<Duration, std::io::Error> {
+            Ok(Duration::from_millis(10))
+        }
+
+        let cmd = clap::Command::new("cmd");
+        let arg = None;
+
+        assert!(
+            TypedValueParser::parse_ref(&parse, &cmd, arg, std::ffi::OsStr::new("10"))
+                .is_ok_and(|v| v.as_millis() == 10)
+        );
     }
 }

@@ -108,7 +108,7 @@ fn main() {
             let pool = Arc::new(ConnectionPool::with_capacity(args.cap));
 
             let length = Arc::new(args.length as usize);
-            let delay = Arc::new(Duration::from_millis(args.delay));
+            let delay = Arc::new(args.delay);
 
             task::spawn(async {
                 // NOTE: all errors are meaningless for us here
