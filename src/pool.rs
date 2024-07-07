@@ -1,11 +1,12 @@
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicU16, Ordering};
 
+use fnv::FnvBuildHasher;
 use scc::HashSet;
 
 /// Represents a pool of unique socket addresses.
 pub struct ConnectionPool {
-    inner: HashSet<SocketAddr>,
+    inner: HashSet<SocketAddr, FnvBuildHasher>,
     capacity: u16,
     length: AtomicU16,
 }
@@ -14,7 +15,7 @@ impl ConnectionPool {
     /// Creates a new pool with a given capacity.
     pub fn with_capacity(capacity: u16) -> ConnectionPool {
         ConnectionPool {
-            inner: HashSet::with_capacity(capacity as usize),
+            inner: HashSet::with_capacity_and_hasher(capacity as usize, FnvBuildHasher::default()),
             // NOTE: HashSet::with_capacity only garantees the least capacity
             // but we want a precise value
             capacity,
