@@ -329,6 +329,7 @@ dependencies = [
  "fastrand 1.9.0",
  "futures-util",
  "mimalloc",
+ "scc",
 ]
 
 [[package]]
@@ -691,6 +692,21 @@ dependencies = [
  "linux-raw-sys 0.4.11",
  "windows-sys",
 ]
+
+[[package]]
+name = "scc"
+version = "2.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af947d0ca10a2f3e00c7ec1b515b7c83e5cb3fa62d4c11a64301d9eec54440e9"
+dependencies = [
+ "sdd",
+]
+
+[[package]]
+name = "sdd"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b84345e4c9bd703274a082fb80caaa99b7612be48dfaa1dd9266577ec412309d"
 
 [[package]]
 name = "slab"

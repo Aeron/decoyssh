@@ -1,6 +1,7 @@
 mod args;
 mod pool;
 
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use anyhow::{bail, Result};
@@ -13,7 +14,7 @@ use fastrand::alphanumeric;
 use futures_util::stream::select_all;
 
 use crate::args::Args;
-use crate::pool::{ConnectionPool, ConnectionPoolProxy};
+use crate::pool::ConnectionPool;
 
 const CRLF: &str = "\r\n";
 
@@ -23,12 +24,12 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 async fn process(
     mut stream: TcpStream,
-    pool: ConnectionPoolProxy,
-    length: usize,
-    delay: Duration,
+    pool: Arc<ConnectionPool>,
+    length: Arc<usize>,
+    delay: Arc<Duration>,
 ) -> Result<(SocketAddr, Duration)> {
     let addr = stream.peer_addr()?;
-    let cap = length + CRLF.len();
+    let cap = *length + CRLF.len();
     let now = Instant::now();
 
     if pool.insert(addr).await {
@@ -36,7 +37,7 @@ async fn process(
         let mut rep = repeat_with(alphanumeric);
 
         while let Some(ch) = rep.next().await {
-            if buf.len() < length {
+            if buf.len() < *length {
                 buf.push(ch);
                 continue;
             }
@@ -51,14 +52,14 @@ async fn process(
 
             buf.clear();
 
-            task::sleep(delay).await;
+            task::sleep(*delay).await;
         }
     } else {
         stream.shutdown(Shutdown::Both)?;
         bail!("pool is not ready");
     }
 
-    pool.remove(addr).await;
+    pool.remove(&addr).await;
 
     Ok((addr, now.elapsed()))
 }
@@ -75,8 +76,6 @@ fn main() {
     });
 
     let args = Args::parse();
-    let length = args.length as usize;
-    let delay = Duration::from_millis(args.delay);
 
     let listeners: Vec<TcpListener> = args
         .addrs
@@ -95,13 +94,6 @@ fn main() {
 
     let mut incoming = select_all(listeners.iter().map(|l| l.incoming()));
 
-    let mut pool = ConnectionPool::with_capacity(args.cap as usize);
-    let proxy = pool.proxy();
-
-    task::spawn(async move {
-        pool.listen().await;
-    });
-
     task::block_on(async {
         while let Some(stream) = incoming.next().await {
             let stream = match stream {
@@ -113,9 +105,12 @@ fn main() {
             };
             stream.set_nodelay(true).ok(); // we do not really care if it clicks or not
 
-            let pool = proxy.clone();
+            let pool = Arc::new(ConnectionPool::with_capacity(args.cap));
 
-            task::spawn(async move {
+            let length = Arc::new(args.length as usize);
+            let delay = Arc::new(Duration::from_millis(args.delay));
+
+            task::spawn(async {
                 // NOTE: all errors are meaningless for us here
                 if let Ok((addr, dur)) = process(stream, pool, length, delay).await {
                     println!("{addr} has gone yet wasted ~{dur:.2?}")
