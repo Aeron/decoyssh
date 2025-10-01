@@ -120,7 +120,7 @@ jobs:
         with:
           tags: ${{ steps.build-image.outputs.tags }}
       - name: Update Docker Hub description
-        uses: peter-evans/dockerhub-description@v4
+        uses: peter-evans/dockerhub-description@v5
         continue-on-error: true
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
