@@ -47,7 +47,7 @@ jobs:
           # - target: riscv64gc-unknown-linux-musl
           #   os: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Build and Upload
         uses: taiki-e/upload-rust-binary-action@v1
         with:
@@ -61,7 +61,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -80,7 +80,7 @@ jobs:
       GITHUB_REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/decoyssh
       DOCKER_REGISTRY_IMAGE: docker.io/aeron/decoyssh
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - id: recase
         uses: ASzc/change-string-case-action@v6
         with:
