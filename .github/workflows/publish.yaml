@@ -86,7 +86,7 @@ jobs:
         with:
           string: ${{ env.GITHUB_REGISTRY_IMAGE }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         # HACK: https://github.com/docker/setup-qemu-action/issues/60
         # and https://github.com/tonistiigi/binfmt/issues/122
         with:
