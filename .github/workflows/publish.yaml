@@ -82,7 +82,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - id: recase
-        uses: ASzc/change-string-case-action@v7
+        uses: ASzc/change-string-case-action@v8
         with:
           string: ${{ env.GITHUB_REGISTRY_IMAGE }}
       - name: Set up QEMU
