@@ -93,7 +93,7 @@ jobs:
           image: tonistiigi/binfmt:qemu-v6.2.0
       - name: Build Image
         id: build-image
-        uses: redhat-actions/buildah-build@v3.0.2
+        uses: redhat-actions/buildah-build@v3.1.0
         with:
           tags: >-
             ${{ steps.recase.outputs.lowercase }}:latest
